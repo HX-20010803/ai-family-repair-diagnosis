@@ -1,0 +1,12 @@
+- code: lock_failure_basic
+  secondary_category: lock_failure
+  title: 门锁故障
+  symptoms: ["门锁打不开", "钥匙卡住", "指纹锁失灵", "被困"]
+  possible_causes: ["电池电量不足", "锁芯或锁体机械卡滞", "指纹模块或电子模块故障"]
+  safe_self_checks: ["确认人在门内还是门外", "尝试备用钥匙或外接临时供电", "联系物业或正规开锁服务"]
+  risk_warnings: ["不要暴力拆锁导致门体损坏", "有人被困或老人小孩在内时优先求助"]
+  professional_required: true
+  price_scene_code: lock_failure
+  source_type: manual
+  version: "2026.06"
+

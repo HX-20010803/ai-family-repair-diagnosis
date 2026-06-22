@@ -1,0 +1,12 @@
+- code: floor_drain_smell_basic
+  secondary_category: floor_drain_smell
+  title: 地漏反味/厨卫异味
+  symptoms: ["地漏反味", "卫生间臭味", "厨房异味", "下水慢"]
+  possible_causes: ["水封干涸或失效", "地漏芯密封不严", "下水管道堵塞或负压返味"]
+  safe_self_checks: ["向地漏补水观察是否缓解", "清洁地漏毛发和污垢", "确认是否伴随返水或下水慢"]
+  risk_warnings: ["不要混用刺激性清洁剂", "长期强烈异味或返水建议联系专业疏通"]
+  professional_required: false
+  price_scene_code: floor_drain_smell
+  source_type: manual
+  version: "2026.06"
+

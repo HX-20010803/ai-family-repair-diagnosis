@@ -1,0 +1,12 @@
+- code: water_leak_basic
+  secondary_category: water_leak
+  title: 漏水渗水
+  symptoms: ["滴水", "渗水", "天花板水痕", "水龙头漏水"]
+  possible_causes: ["楼上防水层渗漏", "吊顶内管道接口渗漏", "公共管道或水龙头连接处漏水"]
+  safe_self_checks: ["拍照记录漏水位置和范围", "确认是否靠近电源", "联系物业确认楼上或公共管道情况"]
+  risk_warnings: ["不要自行拆吊顶", "漏水靠近电源时先断电并远离"]
+  professional_required: true
+  price_scene_code: water_leak
+  source_type: manual
+  version: "2026.06"
+

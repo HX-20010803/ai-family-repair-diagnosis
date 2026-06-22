@@ -1,0 +1,18 @@
+version: "2026.06"
+rules:
+  - risk_type: gas
+    keywords: ["燃气味", "煤气味", "燃气泄漏", "刺鼻气味"]
+    urgency_level: S
+    negation_sensitive: true
+    action: "先关闭燃气阀门，开窗通风，不开关电器，尽快联系燃气公司；紧急时拨打 119。"
+  - risk_type: electric_smoke
+    keywords: ["冒烟", "火花", "插座烧黑", "发黑", "烧焦", "漏电"]
+    urgency_level: S
+    negation_sensitive: true
+    action: "停止使用相关电器，关闭空气开关，远离现场并联系专业电工；起火时拨打 119。"
+  - risk_type: water_near_electric
+    keywords: ["漏水靠近电", "水碰到插座", "灯具漏水", "电源附近漏水"]
+    urgency_level: S
+    negation_sensitive: true
+    action: "先远离电源并关闭相关电路，不要自行拆修，联系物业或水电师傅现场处理。"
+

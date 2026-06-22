@@ -1,0 +1,48 @@
+version: "2026.06"
+primary_categories:
+  - code: water
+    name: 水路维修
+  - code: circuit
+    name: 电路维修
+  - code: appliance
+    name: 家电维修
+  - code: lock_window
+    name: 门锁门窗
+  - code: wall_floor
+    name: 墙面地面
+  - code: kitchen_bath
+    name: 厨卫设备
+  - code: maintenance
+    name: 日常保养
+secondary_categories:
+  - code: water_leak
+    name: 漏水渗水
+    primary: water
+  - code: drain_blocked
+    name: 马桶/下水堵塞
+    primary: water
+  - code: ac_not_cooling
+    name: 空调不制冷
+    primary: appliance
+  - code: circuit_trip
+    name: 电路跳闸
+    primary: circuit
+  - code: lock_failure
+    name: 门锁故障
+    primary: lock_window
+  - code: wall_mold
+    name: 墙面发霉/墙皮脱落
+    primary: wall_floor
+  - code: water_heater_failure
+    name: 热水器故障
+    primary: appliance
+  - code: range_hood_gas_stove
+    name: 油烟机/燃气灶问题
+    primary: kitchen_bath
+  - code: floor_drain_smell
+    name: 地漏反味/厨卫异味
+    primary: kitchen_bath
+  - code: window_hardware
+    name: 门窗五金/纱窗损坏
+    primary: lock_window
+

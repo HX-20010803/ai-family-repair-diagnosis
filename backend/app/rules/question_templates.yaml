@@ -1,0 +1,14 @@
+version: "2026.06"
+water_leak:
+  max_questions: 3
+  questions: ["漏水位置在哪里？", "是持续滴水还是偶尔渗水？", "是否靠近灯具、插座或电器？"]
+drain_blocked:
+  max_questions: 3
+  questions: ["堵塞位置在哪里？", "是否有返水或完全不下水？", "是否已经尝试过低风险疏通？"]
+ac_not_cooling:
+  max_questions: 3
+  questions: ["空调用了几年？", "是否有风但不冷？", "滤网近期是否清洗过？"]
+circuit_trip:
+  max_questions: 3
+  questions: ["是全屋跳闸还是局部跳闸？", "跳闸前使用了哪个电器？", "是否闻到烧焦味或看到插座发热？"]
+

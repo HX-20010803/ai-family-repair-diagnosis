@@ -1,0 +1,11 @@
+- code: window_hardware_basic
+  secondary_category: window_hardware
+  title: 门窗五金/纱窗损坏
+  symptoms: ["窗户关不严", "五金松动", "纱窗破损", "门窗变形"]
+  possible_causes: ["合页或执手五金松动", "密封条老化", "窗框变形或滑轨卡滞"]
+  safe_self_checks: ["确认是否影响防盗或坠落安全", "检查可见螺丝是否松动", "记录门窗位置和楼层"]
+  risk_warnings: ["高层外窗不要探身或自行高空维修", "玻璃破裂或有坠落风险时立即远离"]
+  professional_required: false
+  price_scene_code: window_hardware
+  source_type: manual
+  version: "2026.06"

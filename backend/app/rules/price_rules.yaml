@@ -1,0 +1,63 @@
+version: "2026.06"
+updated_at: "2026-06-20"
+rules:
+  - scene_code: water_leak
+    city_tier: other
+    min_price: 50
+    max_price: 150
+    price_unit: 次
+    note: "检测；局部维修和防水重做需现场评估"
+  - scene_code: drain_blocked
+    city_tier: other
+    min_price: 80
+    max_price: 220
+    price_unit: 次
+    note: "普通疏通；严重返水或主管道问题需现场报价"
+  - scene_code: circuit_trip
+    city_tier: other
+    min_price: 100
+    max_price: 300
+    price_unit: 次
+    note: "电路检测；换线、配电箱维修需现场评估"
+  - scene_code: ac_not_cooling
+    city_tier: other
+    min_price: 80
+    max_price: 300
+    price_unit: 次
+    note: "检测、清洗或基础维修；加氟和压缩机另计"
+  - scene_code: lock_failure
+    city_tier: other
+    min_price: 80
+    max_price: 280
+    price_unit: 次
+    note: "基础开锁或换电池；换锁体另计"
+  - scene_code: wall_mold
+    city_tier: other
+    min_price: 100
+    max_price: 500
+    price_unit: 次
+    note: "局部处理；渗漏源修复和重做墙面另计"
+  - scene_code: water_heater_failure
+    city_tier: other
+    min_price: 80
+    max_price: 260
+    price_unit: 次
+    note: "检测或基础维修；建议优先品牌售后"
+  - scene_code: range_hood_gas_stove
+    city_tier: other
+    min_price: 80
+    max_price: 260
+    price_unit: 次
+    note: "清洁、点火检查；燃气风险需联系燃气公司"
+  - scene_code: floor_drain_smell
+    city_tier: other
+    min_price: 50
+    max_price: 180
+    price_unit: 次
+    note: "清洁、更换地漏芯或基础疏通"
+  - scene_code: window_hardware
+    city_tier: other
+    min_price: 80
+    max_price: 300
+    price_unit: 次
+    note: "五金调试或更换；高层外窗需专业人员"

@@ -1,0 +1,12 @@
+- code: ac_not_cooling_basic
+  secondary_category: ac_not_cooling
+  title: 空调不制冷
+  symptoms: ["有风但不冷", "制冷慢", "显示故障代码"]
+  possible_causes: ["滤网堵塞", "模式或温度设置不当", "室外机散热差", "制冷剂不足"]
+  safe_self_checks: ["确认模式为制冷", "清洗滤网", "观察室外机是否运行"]
+  risk_warnings: ["涉及加氟、电路、压缩机维修应联系品牌售后"]
+  professional_required: false
+  price_scene_code: ac_not_cooling
+  source_type: manual
+  version: "2026.06"
+

@@ -1,0 +1,12 @@
+- code: range_hood_gas_stove_basic
+  secondary_category: range_hood_gas_stove
+  title: 油烟机/燃气灶问题
+  symptoms: ["油烟机吸力弱", "燃气灶打不着火", "燃气味", "点火失败"]
+  possible_causes: ["油网或烟道堵塞", "点火针、电池或阀体异常", "燃气连接或泄漏风险"]
+  safe_self_checks: ["确认是否闻到燃气味", "燃气灶可先检查电池", "油烟机可检查油网是否长期未清洁"]
+  risk_warnings: ["有燃气味时不要开关电器或点火测试", "不要自行拆燃气软管和阀门"]
+  professional_required: true
+  price_scene_code: range_hood_gas_stove
+  source_type: manual
+  version: "2026.06"
+

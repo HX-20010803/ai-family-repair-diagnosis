@@ -1,0 +1,12 @@
+- code: wall_mold_basic
+  secondary_category: wall_mold
+  title: 墙面发霉/墙皮脱落
+  symptoms: ["墙角发霉", "墙皮脱落", "鼓包", "返潮"]
+  possible_causes: ["室内湿度高或通风不足", "外墙或卫生间渗漏", "基层腻子受潮失效"]
+  safe_self_checks: ["记录发霉面积变化", "加强通风除湿", "观察是否靠近卫生间、外墙或管道"]
+  risk_warnings: ["不要只做表面刷白掩盖渗漏源", "大面积霉斑应做好防护并查明潮湿来源"]
+  professional_required: false
+  price_scene_code: wall_mold
+  source_type: manual
+  version: "2026.06"
+

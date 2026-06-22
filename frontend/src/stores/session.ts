@@ -1,0 +1,95 @@
+import { defineStore } from 'pinia'
+import { completeDiagnosis, createDiagnosisSession, sendDiagnosisMessage } from '../services/diagnosis'
+import type { ChatMessage, DiagnosisResult, SessionStatus } from '../types/diagnosis'
+
+function messageId() {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+export const useSessionStore = defineStore('session', {
+  state: () => ({
+    sessionId: '',
+    status: 'idle' as SessionStatus,
+    messages: [
+      {
+        id: messageId(),
+        role: 'assistant',
+        kind: 'text',
+        text: '请直接描述家里的故障，比如“卫生间天花板一直滴水”或“插座发黑还能用吗”。'
+      }
+    ] as ChatMessage[],
+    roundCount: 0,
+    currentResult: null as DiagnosisResult | null,
+    error: ''
+  }),
+  actions: {
+    async send(text: string) {
+      if (!text.trim()) return
+      this.error = ''
+      this.messages.push({ id: messageId(), role: 'user', text, kind: 'text' })
+      this.status = this.sessionId ? 'asking' : 'creating'
+      try {
+        const response = this.sessionId
+          ? await sendDiagnosisMessage(this.sessionId, text)
+          : await createDiagnosisSession(text)
+        this.applyResponse(response)
+      } catch (error) {
+        this.status = 'error'
+        this.error = error instanceof Error ? error.message : 'AI 暂时无法判断，请稍后重试。'
+      }
+    },
+    async complete() {
+      if (!this.sessionId) return
+      this.status = 'completing'
+      try {
+        const response = await completeDiagnosis(this.sessionId)
+        this.applyResponse(response)
+      } catch (error) {
+        this.status = 'error'
+        this.error = error instanceof Error ? error.message : 'AI 暂时无法生成结果，请稍后重试。'
+      }
+    },
+    applyResponse(response: any) {
+      this.sessionId = response.session.id
+      this.roundCount = response.session.question_round_count
+      if (response.safety_notice) {
+        this.messages.push({ id: messageId(), role: 'assistant', text: response.safety_notice, kind: 'safety' })
+      }
+      if (response.type === 'questions') {
+        this.status = 'asking'
+        this.messages.push({
+          id: messageId(),
+          role: 'assistant',
+          text: response.questions.join('\n'),
+          kind: 'questions'
+        })
+      }
+      if (response.type === 'result' && response.result) {
+        this.status = 'completed'
+        this.currentResult = response.result
+        this.messages.push({
+          id: messageId(),
+          role: 'assistant',
+          text: `已生成诊断结果：紧急程度 ${response.result.urgency.level} 级。`,
+          kind: 'result'
+        })
+      }
+    },
+    reset() {
+      this.sessionId = ''
+      this.status = 'idle'
+      this.roundCount = 0
+      this.currentResult = null
+      this.error = ''
+      this.messages = [
+        {
+          id: messageId(),
+          role: 'assistant',
+          kind: 'text',
+          text: '请直接描述家里的故障，比如“卫生间天花板一直滴水”或“插座发黑还能用吗”。'
+        }
+      ]
+    }
+  }
+})
+

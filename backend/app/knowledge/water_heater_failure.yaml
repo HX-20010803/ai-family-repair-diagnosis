@@ -1,0 +1,12 @@
+- code: water_heater_failure_basic
+  secondary_category: water_heater_failure
+  title: 热水器故障
+  symptoms: ["不出热水", "忽冷忽热", "故障码", "燃气味"]
+  possible_causes: ["水压或温控异常", "点火或燃气供应异常", "加热元件或传感器故障"]
+  safe_self_checks: ["确认热水器类型", "查看是否有故障码", "燃气热水器先确认是否有燃气味"]
+  risk_warnings: ["闻到燃气味时立即关阀通风并联系燃气公司", "不要自行拆燃气管路或电热水器内部线路"]
+  professional_required: true
+  price_scene_code: water_heater_failure
+  source_type: manual
+  version: "2026.06"
+

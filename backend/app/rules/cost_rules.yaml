@@ -1,0 +1,15 @@
+version: "2026.06"
+capabilities:
+  llm_chat:
+    unit: per_1k_tokens
+    price_in_yuan: 0.002
+    estimated: true
+  content_safety:
+    unit: per_call
+    price_in_yuan: 0.005
+    estimated: true
+  rules_template:
+    unit: per_call
+    price_in_yuan: 0.03
+    estimated: true
+

@@ -1,0 +1,12 @@
+- code: drain_blocked_basic
+  secondary_category: drain_blocked
+  title: 马桶/下水堵塞
+  symptoms: ["马桶堵塞", "下水慢", "返水", "地漏堵塞"]
+  possible_causes: ["纸巾或异物堵塞", "存水弯或支管堵塞", "主管道排水不畅"]
+  safe_self_checks: ["停止继续冲水", "确认是否有返水", "可尝试皮搋子等低风险疏通"]
+  risk_warnings: ["不要混用强酸强碱疏通剂", "严重返水时避免接触污水并联系专业疏通"]
+  professional_required: false
+  price_scene_code: drain_blocked
+  source_type: manual
+  version: "2026.06"
+

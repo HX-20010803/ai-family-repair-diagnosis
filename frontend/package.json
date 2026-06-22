@@ -1,0 +1,35 @@
+{
+  "name": "ai-home-repair-diagnosis-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.0.7",
+  "scripts": {
+    "dev:h5": "uni -p h5 --host 0.0.0.0",
+    "build:h5": "uni build -p h5",
+    "typecheck": "vue-tsc --noEmit",
+    "check:chat-layout": "node scripts/check-chat-layout.mjs",
+    "check:api-error": "node scripts/check-api-error.mjs"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-4080720251210001",
+    "@dcloudio/uni-components": "3.0.0-4080720251210001",
+    "@dcloudio/uni-h5": "3.0.0-4080720251210001",
+    "pinia": "2.3.1",
+    "vue": "3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "3.4.19",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4080720251210001",
+    "typescript": "5.6.3",
+    "vite": "5.2.8",
+    "vue-tsc": "2.1.10"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "core-js",
+      "esbuild",
+      "vue-demi"
+    ]
+  }
+}

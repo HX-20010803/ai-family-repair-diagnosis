@@ -1,0 +1,12 @@
+- code: circuit_trip_basic
+  secondary_category: circuit_trip
+  title: 电路跳闸
+  symptoms: ["跳闸", "插座发黑", "冒烟", "火花", "烧焦味"]
+  possible_causes: ["插座或线路短路", "电器过载", "配电箱保护开关动作"]
+  safe_self_checks: ["停止使用异常插座或电器", "关闭相关空气开关"]
+  risk_warnings: ["不要继续通电测试", "不要自行拆插座或配电箱"]
+  professional_required: true
+  price_scene_code: circuit_trip
+  source_type: manual
+  version: "2026.06"
+

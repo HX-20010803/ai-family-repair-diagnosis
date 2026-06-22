@@ -1,0 +1,19 @@
+{
+  "name": "AI 家庭维修诊断助手",
+  "appid": "__UNI__REPAIRAI",
+  "description": "面向家庭用户的故障识别、风险判断和维修记录助手",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "h5": {
+    "router": {
+      "mode": "hash"
+    }
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    }
+  }
+}
+
