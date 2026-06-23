@@ -1,5 +1,5 @@
 version: "2026.06"
-updated_at: "2026-06-20"
+updated_at: "2026-06-22"
 rules:
   - scene_code: water_leak
     city_tier: other
@@ -7,57 +7,117 @@ rules:
     max_price: 150
     price_unit: 次
     note: "检测；局部维修和防水重做需现场评估"
+  - scene_code: water_leak
+    city_tier: tier1
+    min_price: 80
+    max_price: 200
+    price_unit: 次
+    note: "检测；局部维修 300-1000 元、防水重做需现场评估"
   - scene_code: drain_blocked
     city_tier: other
     min_price: 80
     max_price: 220
     price_unit: 次
     note: "普通疏通；严重返水或主管道问题需现场报价"
+  - scene_code: drain_blocked
+    city_tier: tier1
+    min_price: 150
+    max_price: 400
+    price_unit: 次
+    note: "普通疏通；严重堵塞、夜间上门可能加价"
   - scene_code: circuit_trip
     city_tier: other
     min_price: 100
     max_price: 300
     price_unit: 次
     note: "电路检测；换线、配电箱维修需现场评估"
+  - scene_code: circuit_trip
+    city_tier: tier1
+    min_price: 150
+    max_price: 600
+    price_unit: 次
+    note: "电路检测；配电箱、线路改造需现场评估"
   - scene_code: ac_not_cooling
     city_tier: other
     min_price: 80
     max_price: 300
     price_unit: 次
     note: "检测、清洗或基础维修；加氟和压缩机另计"
+  - scene_code: ac_not_cooling
+    city_tier: tier1
+    min_price: 150
+    max_price: 350
+    price_unit: 次
+    note: "清洗或基础维修；加氟 200-500 元、压缩机另计"
   - scene_code: lock_failure
     city_tier: other
     min_price: 80
     max_price: 280
     price_unit: 次
     note: "基础开锁或换电池；换锁体另计"
+  - scene_code: lock_failure
+    city_tier: tier1
+    min_price: 150
+    max_price: 600
+    price_unit: 次
+    note: "基础开锁或换电池；智能锁配件差异较大"
   - scene_code: wall_mold
     city_tier: other
     min_price: 100
     max_price: 500
     price_unit: 次
     note: "局部处理；渗漏源修复和重做墙面另计"
+  - scene_code: wall_mold
+    city_tier: tier1
+    min_price: 200
+    max_price: 800
+    price_unit: 次
+    note: "小面积处理；若源头是渗漏需先处理漏水"
   - scene_code: water_heater_failure
     city_tier: other
     min_price: 80
     max_price: 260
     price_unit: 次
     note: "检测或基础维修；建议优先品牌售后"
+  - scene_code: water_heater_failure
+    city_tier: tier1
+    min_price: 150
+    max_price: 500
+    price_unit: 次
+    note: "检修；燃气类优先联系品牌售后或燃气相关服务"
   - scene_code: range_hood_gas_stove
     city_tier: other
     min_price: 80
     max_price: 260
     price_unit: 次
     note: "清洁、点火检查；燃气风险需联系燃气公司"
+  - scene_code: range_hood_gas_stove
+    city_tier: tier1
+    min_price: 150
+    max_price: 500
+    price_unit: 次
+    note: "清洗/检修；有燃气味时不进入报价优先安全处理"
   - scene_code: floor_drain_smell
     city_tier: other
     min_price: 50
     max_price: 180
     price_unit: 次
     note: "清洁、更换地漏芯或基础疏通"
+  - scene_code: floor_drain_smell
+    city_tier: tier1
+    min_price: 100
+    max_price: 400
+    price_unit: 次
+    note: "水封、管道或基础疏通；可能涉及堵塞或返味"
   - scene_code: window_hardware
     city_tier: other
     min_price: 80
     max_price: 300
     price_unit: 次
     note: "五金调试或更换；高层外窗需专业人员"
+  - scene_code: window_hardware
+    city_tier: tier1
+    min_price: 150
+    max_price: 600
+    price_unit: 次
+    note: "五金调试或更换；高层外窗风险场景需专业人员"

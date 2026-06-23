@@ -25,6 +25,10 @@ class MessageRequest(BaseModel):
     city_tier: str | None = None
 
 
+class CompleteRequest(BaseModel):
+    city_tier: str | None = None
+
+
 class FeedbackRequest(BaseModel):
     rating: Literal["useful", "neutral", "not_useful"]
     reason_tags: list[str] = Field(default_factory=list, max_length=8)
@@ -66,6 +70,7 @@ def send_message(
 @router.post("/sessions/{session_id}/complete")
 def complete_session(
     session_id: str,
+    payload: CompleteRequest | None = None,
     x_anonymous_token: str = Header(default="anonymous-demo"),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -80,6 +85,7 @@ def complete_session(
         anonymous_token=x_anonymous_token,
         text=merged_text or "用户要求生成诊断结果",
         session_id=session_id,
+        city_tier=payload.city_tier if payload else None,
     )
     return _response_to_dict(response)
 

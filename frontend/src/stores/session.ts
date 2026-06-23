@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { completeDiagnosis, createDiagnosisSession, sendDiagnosisMessage } from '../services/diagnosis'
 import type { ChatMessage, DiagnosisResult, SessionStatus } from '../types/diagnosis'
+import { useHousesStore } from './houses'
 
 function messageId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -28,10 +29,11 @@ export const useSessionStore = defineStore('session', {
       this.error = ''
       this.messages.push({ id: messageId(), role: 'user', text, kind: 'text' })
       this.status = this.sessionId ? 'asking' : 'creating'
+      const cityTier = useHousesStore().activeCityTier
       try {
         const response = this.sessionId
-          ? await sendDiagnosisMessage(this.sessionId, text)
-          : await createDiagnosisSession(text)
+          ? await sendDiagnosisMessage(this.sessionId, text, cityTier)
+          : await createDiagnosisSession(text, cityTier)
         this.applyResponse(response)
       } catch (error) {
         this.status = 'error'
@@ -41,8 +43,9 @@ export const useSessionStore = defineStore('session', {
     async complete() {
       if (!this.sessionId) return
       this.status = 'completing'
+      const cityTier = useHousesStore().activeCityTier
       try {
-        const response = await completeDiagnosis(this.sessionId)
+        const response = await completeDiagnosis(this.sessionId, cityTier)
         this.applyResponse(response)
       } catch (error) {
         this.status = 'error'
