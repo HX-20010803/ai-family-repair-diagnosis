@@ -1,5 +1,11 @@
 import { defineStore } from 'pinia'
-import { fetchRepairRecords, saveRepairRecord, type RepairRecord } from '../services/records'
+import {
+  fetchRepairRecords,
+  saveRepairRecord,
+  updateRepairRecord,
+  type RepairRecord,
+  type RepairRecordPatch
+} from '../services/records'
 
 export const useRecordsStore = defineStore('records', {
   state: () => ({
@@ -26,6 +32,11 @@ export const useRecordsStore = defineStore('records', {
       const record = await saveRepairRecord(diagnosisResultId)
       this.items = [record, ...this.items.filter((item) => item.id !== record.id)]
       this.total = this.items.length
+      return record
+    },
+    async updateRecord(id: string, patch: RepairRecordPatch) {
+      const record = await updateRepairRecord(id, patch)
+      this.items = this.items.map((item) => (item.id === id ? { ...item, ...record } : item))
       return record
     }
   }

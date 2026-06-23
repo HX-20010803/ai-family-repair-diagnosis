@@ -1,7 +1,7 @@
 # AI 家庭维修诊断助手评测 baseline v0.1.1 — prod
 
 - Mode: production path (template-first + DeepSeek fallback)
-- Generated at: 2026-06-22T07:17:38.457897+00:00
+- Generated at: 2026-06-23T04:58:42.055938+00:00
 - Samples: 200
 - Classification accuracy: 95.5%
 - Urgency accuracy: 95.0%
