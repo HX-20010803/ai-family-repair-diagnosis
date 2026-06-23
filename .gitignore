@@ -14,3 +14,8 @@ unpackage/
 pnpm-debug.log*
 *.log
 .uvicorn_*
+
+# Python build artifacts
+*.egg-info/
+.venv/
+venv/
