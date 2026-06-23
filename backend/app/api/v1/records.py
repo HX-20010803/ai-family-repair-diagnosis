@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.models.diagnosis import DiagnosisResult
 from app.models.repair_record import RepairRecord
 from app.services.record_service import RecordService
 
@@ -49,17 +50,17 @@ def create_record(
 @router.get("")
 def list_records(x_anonymous_token: str = Header(default="anonymous-demo"), db: Session = Depends(get_db)) -> dict:
     service = RecordService(db)
-    records = service.list_records(anonymous_token=x_anonymous_token)
-    return {"items": [_record_to_dict(record) for record in records], "total": len(records)}
+    rows = service.list_records(anonymous_token=x_anonymous_token)
+    return {"items": [_record_to_dict(record, result) for record, result in rows], "total": len(rows)}
 
 
 @router.get("/{record_id}")
 def get_record(record_id: str, db: Session = Depends(get_db)) -> dict:
     service = RecordService(db)
-    record = service.get_record(record_id)
+    record, result = service.get_record_with_result(record_id)
     if record is None:
         raise HTTPException(status_code=404, detail={"code": "RECORD_NOT_FOUND"})
-    return _record_to_dict(record)
+    return _record_to_dict(record, result)
 
 
 @router.patch("/{record_id}")
@@ -71,8 +72,8 @@ def patch_record(record_id: str, payload: RepairRecordPatch, db: Session = Depen
     return _record_to_dict(record)
 
 
-def _record_to_dict(record: RepairRecord) -> dict:
-    return {
+def _record_to_dict(record: RepairRecord, result: DiagnosisResult | None = None) -> dict:
+    payload = {
         "id": record.id,
         "anonymous_token": record.anonymous_token,
         "diagnosis_result_id": record.diagnosis_result_id,
@@ -86,3 +87,16 @@ def _record_to_dict(record: RepairRecord) -> dict:
         "created_at": record.created_at.isoformat() if record.created_at else None,
         "updated_at": record.updated_at.isoformat() if record.updated_at else None,
     }
+    result_json = result.result_json if result is not None else None
+    payload.update(
+        {
+            "primary_category": result.primary_category if result is not None else None,
+            "secondary_category": result.secondary_category if result is not None else None,
+            "urgency_level": result.urgency_level if result is not None else None,
+            "possible_causes": result_json.get("possible_causes") if result_json else None,
+            "recommended_actions": result_json.get("recommended_actions") if result_json else None,
+            "forbidden_actions": result_json.get("forbidden_actions") if result_json else None,
+            "price_range": (result_json.get("price_reference") or {}).get("range") if result_json else None,
+        }
+    )
+    return payload

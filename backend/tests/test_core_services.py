@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 
@@ -153,6 +154,49 @@ class DiagnosisServiceTest(unittest.TestCase):
         self.assertEqual(response.type, "questions")
         self.assertEqual(response.questions[0], "堵塞位置在哪里？")
         self.assertNotIn("漏水位置在哪里？", response.questions)
+
+    def test_followup_questions_do_not_repeat_previous_round(self):
+        """A second low-context message in the same session must not re-ask
+        questions already posed in round one (PRD §8.2 multi-round follow-up)."""
+        first = self.service.handle_message(
+            anonymous_token="demo-token",
+            text="马桶堵了水下不去，应该怎么办",
+        )
+        self.assertEqual(first.type, "questions")
+        self.assertEqual(first.session.question_round_count, 1)
+
+        second = self.service.handle_message(
+            anonymous_token="demo-token",
+            text="马桶堵了水下不去，应该怎么办",
+            session_id=first.session.id,
+        )
+
+        self.assertEqual(second.type, "questions")
+        self.assertEqual(second.session.question_round_count, 2)
+        self.assertEqual(set(second.questions).intersection(set(first.questions)), set())
+
+    def test_session_restore_recovers_asked_history(self):
+        """Messages restored from the DB carry joined question strings without a
+        `type` marker; `_collect_asked` must still recover them via pool
+        matching, and ignore non-question assistant text (e.g. a stored id)."""
+        session = DiagnosisSession(
+            anonymous_token="demo-token",
+            original_input_json={},
+            question_round_count=1,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        session.messages.append(
+            {"role": "assistant", "content": "堵塞位置在哪里？\n是否有返水或完全不下水？"}
+        )
+        session.messages.append({"role": "user", "content": "马桶"})
+        session.messages.append({"role": "assistant", "content": "diag_result_abc"})
+
+        asked = self.service._collect_asked(session)
+
+        self.assertIn("堵塞位置在哪里？", asked)
+        self.assertIn("是否有返水或完全不下水？", asked)
+        self.assertNotIn("diag_result_abc", asked)
 
     def test_classifier_handles_common_v011_boundary_phrases(self):
         cases = [

@@ -98,7 +98,8 @@ class DiagnosisService:
             high_risk=risk.triggered,
         ):
             session.question_round_count += 1
-            questions = self.question_service.next_questions(fault_type.secondary)
+            asked = self._collect_asked(session)
+            questions = self.question_service.next_questions(fault_type.secondary, asked=asked)
             session.messages.append({"role": "assistant", "type": "questions", "content": questions})
             if self.repository:
                 self.repository.update_session(session)
@@ -190,6 +191,12 @@ class DiagnosisService:
                     question_round_count=persisted.question_round_count,
                     status=persisted.status,
                 )
+                # Restore message history so follow-up questions can deduplicate
+                # against what was already asked. DiagnosisMessage rows only keep
+                # role + content (no `type`); `_collect_asked` matches against the
+                # QuestionService question pool to recover the asked set.
+                for message in self.repository.list_messages(session_id):
+                    session.messages.append({"role": message.role, "content": message.content})
                 self.sessions[session.id] = session
                 return session
 
@@ -201,6 +208,27 @@ class DiagnosisService:
         if self.repository:
             self.repository.create_session(session)
         return session
+
+    def _collect_asked(self, session: DiagnosisSession) -> list[str]:
+        """Collect previously asked follow-up questions from session history.
+
+        Works for both in-memory sessions (messages carry typed content lists)
+        and sessions restored from the database (messages carry joined content
+        strings without the `type` marker). Any assistant content that matches a
+        question in the QuestionService pool is treated as already asked, so
+        non-question assistant text (e.g. a stored result id) is ignored.
+        """
+        pool: set[str] = set()
+        for questions in self.question_service.QUESTIONS.values():
+            pool.update(questions)
+        asked: list[str] = []
+        for message in session.messages:
+            if message.get("role") != "assistant":
+                continue
+            content = message.get("content")
+            items = content if isinstance(content, list) else str(content).split("\n")
+            asked.extend(q for q in items if q in pool)
+        return asked
 
     def _persist_session_and_message(self, session: DiagnosisSession, role: str, content: str) -> None:
         if not self.repository:

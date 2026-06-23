@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.diagnosis import DiagnosisResult
 from app.models.repair_record import RepairRecord
 
 
@@ -32,16 +33,28 @@ class RecordService:
         self.db.refresh(row)
         return row
 
-    def list_records(self, anonymous_token: str) -> list[RepairRecord]:
+    def list_records(self, anonymous_token: str) -> list[tuple[RepairRecord, DiagnosisResult | None]]:
         stmt = (
-            select(RepairRecord)
+            select(RepairRecord, DiagnosisResult)
+            .join(DiagnosisResult, RepairRecord.diagnosis_result_id == DiagnosisResult.id, isouter=True)
             .where(RepairRecord.anonymous_token == anonymous_token)
             .order_by(RepairRecord.created_at.desc())
         )
-        return list(self.db.scalars(stmt))
+        return [(record, result) for record, result in self.db.execute(stmt).all()]
 
     def get_record(self, record_id: str) -> RepairRecord | None:
         return self.db.get(RepairRecord, record_id)
+
+    def get_record_with_result(self, record_id: str) -> tuple[RepairRecord | None, DiagnosisResult | None]:
+        stmt = (
+            select(RepairRecord, DiagnosisResult)
+            .join(DiagnosisResult, RepairRecord.diagnosis_result_id == DiagnosisResult.id, isouter=True)
+            .where(RepairRecord.id == record_id)
+        )
+        row = self.db.execute(stmt).first()
+        if row is None:
+            return None, None
+        return row[0], row[1]
 
     def patch_record(self, record_id: str, **updates) -> RepairRecord | None:
         row = self.get_record(record_id)

@@ -15,6 +15,7 @@ from app.services.content_safety_service import ContentSafetyService, LocalKeywo
 from app.services.record_service import RecordService
 from app.ai.llm_adapter import ChatResult
 from app.api.v1.diagnosis import FeedbackRequest, submit_feedback
+from app.api.v1.records import _record_to_dict
 
 
 class ClassificationAndDiagnosisLLM:
@@ -149,7 +150,36 @@ class PersistenceFlowTest(unittest.TestCase):
 
             self.assertEqual(record.diagnosis_result_id, diagnosis_response.result.id)
             self.assertEqual(len(records), 1)
-            self.assertEqual(records[0].house_area, "厨房")
+            record_row, result_row = records[0]
+            self.assertEqual(record_row.house_area, "厨房")
+            self.assertEqual(result_row.secondary_category, "circuit_trip")
+            self.assertEqual(result_row.urgency_level, "S")
+
+    def test_record_dict_includes_diagnosis_summary(self):
+        with self.Session() as db:
+            diagnosis_service = DiagnosisService(
+                repository=DiagnosisRepository(db),
+                llm_adapter=None,
+                content_safety_service=local_content_safety_service(),
+            )
+            diagnosis_response = diagnosis_service.handle_message(
+                anonymous_token="summary-token",
+                text="插座发黑还冒烟了，现在还能继续用吗",
+            )
+            record_service = RecordService(db)
+            record_service.create_record(
+                anonymous_token="summary-token",
+                diagnosis_result_id=diagnosis_response.result.id,
+                house_area="厨房",
+            )
+            record_row, result_row = record_service.list_records(anonymous_token="summary-token")[0]
+
+            payload = _record_to_dict(record_row, result_row)
+
+            self.assertEqual(payload["secondary_category"], "circuit_trip")
+            self.assertEqual(payload["urgency_level"], "S")
+            self.assertIsInstance(payload["possible_causes"], list)
+            self.assertIsInstance(payload["price_range"], str)
 
     def test_unsafe_input_is_blocked_and_written_to_content_safety_log(self):
         with self.Session() as db:
