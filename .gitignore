@@ -19,3 +19,5 @@ pnpm-debug.log*
 *.egg-info/
 .venv/
 venv/
+DEPLOY_EXTERNAL_TEST.md
+.frpc.toml

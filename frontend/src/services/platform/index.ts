@@ -4,7 +4,11 @@ export async function getAnonymousToken(): Promise<string> {
   // #ifdef H5
   const currentH5 = localStorage.getItem(STORAGE_KEY)
   if (currentH5) return currentH5
-  const tokenH5 = crypto.randomUUID()
+  // crypto.randomUUID 仅在 secure context (https/localhost) 可用；HTTP 局域网访问降级
+  const tokenH5 =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`
   localStorage.setItem(STORAGE_KEY, tokenH5)
   return tokenH5
   // #endif
