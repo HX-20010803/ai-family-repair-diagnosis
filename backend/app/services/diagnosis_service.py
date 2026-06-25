@@ -89,7 +89,14 @@ class DiagnosisService:
             )
 
         normalized = self._normalize(text)
-        fault_type = self.classification_service.classify(normalized)
+        # 分类锁定在「首轮描述」：故障类型不会因为用户后续短回答（如"电的"）而改变，
+        # 避免分类漂移导致追问字段错乱（如热水器问题问到跳闸/漏水字段）。
+        first_user_text = next(
+            (m.get("content", "") for m in session.messages if m.get("role") == "user"),
+            text,
+        )
+        fault_type = self.classification_service.classify(self._normalize(str(first_user_text)))
+        # 风险仍按当前轮重新评估（用户可能在后续轮才提到燃气味/漏电等风险）
         risk = self.risk_service.assess(normalized)
         self._persist_classification_cost(session)
 
