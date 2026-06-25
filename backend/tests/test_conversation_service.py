@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.ai.llm_adapter import ChatResult
 from app.domain import DiagnosisSession, FaultType
-from app.services.conversation_service import ConversationService, ConversationFallback
+from app.services.conversation_service import ConversationService
 
 
 class FakeLLM:
@@ -88,26 +88,31 @@ class ConversationServiceTest(unittest.TestCase):
         self.assertIn("通风", reply.text)
         self.assertEqual(called["n"], 0)
 
-    def test_fallback_on_llm_failure(self):
+    def test_fallback_on_llm_failure_is_natural_single_question(self):
+        """LLM 失败时不再返回固定 3 问，而是基于未确认字段生成自然语言单问。"""
         llm = FakeLLM("", raise_exc=RuntimeError("timeout"))
-        with self.assertRaises(ConversationFallback):
-            ConversationService(llm).next_reply(
-                _session_with("热水器不出热水"), _fault(), _Risk(), ["热水器类型"]
-            )
+        reply = ConversationService(llm).next_reply(
+            _session_with("热水器不出热水"), _fault(), _Risk(),
+            ["热水器类型(燃气/电/太阳能)", "是否有故障码", "是否有燃气味或焦味", "使用年限"],
+        )
+        # 兜底也是自然语言 chat，绝不是固定 3 问
+        self.assertEqual(reply.type, "chat")
+        self.assertNotIn("？\n", reply.text)  # 不是多问堆砌
+        self.assertTrue(len(reply.text) > 0)
 
-    def test_fallback_on_empty_reply(self):
+    def test_fallback_on_empty_reply_is_natural(self):
         llm = FakeLLM('{"reply":"   ","complete":false,"fields":{}}')
-        with self.assertRaises(ConversationFallback):
-            ConversationService(llm).next_reply(
-                _session_with("热水器不出热水"), _fault(), _Risk(), ["热水器类型"]
-            )
+        reply = ConversationService(llm).next_reply(
+            _session_with("热水器不出热水"), _fault(), _Risk(), ["热水器类型"]
+        )
+        self.assertEqual(reply.type, "chat")
 
-    def test_fallback_on_bad_json(self):
+    def test_fallback_on_bad_json_is_natural(self):
         llm = FakeLLM("这不是JSON")
-        with self.assertRaises(ConversationFallback):
-            ConversationService(llm).next_reply(
-                _session_with("热水器不出热水"), _fault(), _Risk(), ["热水器类型"]
-            )
+        reply = ConversationService(llm).next_reply(
+            _session_with("热水器不出热水"), _fault(), _Risk(), ["热水器类型"]
+        )
+        self.assertEqual(reply.type, "chat")
 
 
 def _session_with(text):

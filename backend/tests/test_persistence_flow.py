@@ -121,7 +121,7 @@ class PersistenceFlowTest(unittest.TestCase):
             )
             costs = repository.list_cost_logs(response.session.id)
 
-            self.assertIn(response.type, {"questions", "result"})
+            self.assertIn(response.type, {"chat", "questions", "result"})
             self.assertIn("classification", {cost.capability for cost in costs})
             classification_cost = next(cost for cost in costs if cost.capability == "classification")
             self.assertEqual(classification_cost.provider, "fake-llm")

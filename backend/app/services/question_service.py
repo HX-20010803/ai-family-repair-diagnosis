@@ -9,7 +9,7 @@ class QuestionService:
     - FALLBACK_QUESTIONS：LLM 失败时的兜底固定问题（保证可用、不卡前端）。
     """
 
-    MAX_ROUNDS = 3
+    MAX_ROUNDS = 6
     MAX_QUESTIONS = 3
 
     # 关键字段清单（PRD §8.2），LLM 对话追问的目标字段
