@@ -7,7 +7,7 @@ from uuid import uuid4
 
 
 UrgencyLevel = Literal["S", "A", "B", "C"]
-ResponseType = Literal["questions", "result", "blocked"]
+ResponseType = Literal["questions", "result", "blocked", "chat"]
 
 
 @dataclass(slots=True)
@@ -85,4 +85,5 @@ class DiagnosisResponse:
     result: DiagnosisResult | None = None
     safety_notice: str | None = None
     error_code: str | None = None
+    message: str | None = None
 

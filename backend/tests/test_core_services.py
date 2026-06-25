@@ -133,7 +133,10 @@ class PriceServiceTest(unittest.TestCase):
 
 class DiagnosisServiceTest(unittest.TestCase):
     def setUp(self):
-        self.service = DiagnosisService(llm_adapter=None, content_safety_service=local_content_safety_service())
+        # 用 FakeLLMAdapter 避免本地有 DeepSeek key 时 build 出真实 LLM，
+        # 导致 conversation_service 走真实模型（慢/花钱/不稳）。
+        # FakeLLM 的 content 是结构化 JSON（无 reply 字段）→ conversation 自动 fallback 到硬编码追问。
+        self.service = DiagnosisService(llm_adapter=FakeLLMAdapter(), content_safety_service=local_content_safety_service())
 
     def test_short_low_context_input_returns_questions(self):
         response = self.service.handle_message(

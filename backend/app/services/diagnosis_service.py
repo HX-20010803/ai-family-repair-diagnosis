@@ -16,6 +16,7 @@ from app.ai.output_parser import OutputParseError, parse_json_object
 from app.ai.prompt_templates import DIAGNOSIS_SYSTEM_PROMPT
 from app.services.content_safety_service import ContentSafetyProviderError, ContentSafetyService
 from app.services.classification_service import ClassificationService
+from app.services.conversation_service import ConversationFallback, ConversationService
 from app.services.cost_service import CostService
 from app.services.price_service import PriceService
 from app.services.question_service import QuestionService
@@ -47,6 +48,7 @@ class DiagnosisService:
         self.classification_service = ClassificationService(self.llm_adapter)
         self.risk_service = RiskService()
         self.question_service = QuestionService()
+        self.conversation_service = ConversationService(self.llm_adapter)
         self.price_service = PriceService()
         self.rag_service = RagService()
         self.content_safety_service = content_safety_service or ContentSafetyService()
@@ -98,17 +100,40 @@ class DiagnosisService:
             session.question_round_count,
             high_risk=risk.triggered,
         ):
-            questions = self.question_service.next_questions(fault_type.secondary, asked=asked)
-            if questions:
-                # 还有没问过的问题，继续追问
+            # 阶段 1：LLM 主导对话追问（首选），失败回退硬编码兜底，再失败出结果
+            reply = None
+            try:
+                reply = self.conversation_service.next_reply(
+                    session,
+                    fault_type,
+                    risk,
+                    self.question_service.required_fields(fault_type.secondary),
+                )
+            except ConversationFallback:
+                reply = None
+
+            if reply is not None and reply.type == "chat":
+                # LLM 自然语言追问
                 session.question_round_count += 1
-                session.messages.append({"role": "assistant", "type": "questions", "content": questions})
+                session.messages.append({"role": "assistant", "type": "chat", "content": reply.text})
                 if self.repository:
                     self.repository.update_session(session)
-                    self.repository.add_message(session.id, "assistant", "\n".join(questions))
+                    self.repository.add_message(session.id, "assistant", reply.text)
                     self.repository.commit()
-                return DiagnosisResponse(type="questions", session=session, questions=questions)
-            # 所有问题都问过了，信息足够，落到下方生成结果（避免空 questions 卡住前端）
+                return DiagnosisResponse(type="chat", session=session, message=reply.text)
+
+            if reply is None:
+                # LLM 失败 → 回退硬编码兜底追问
+                questions = self.question_service.fallback_questions(fault_type.secondary, asked=asked)
+                if questions:
+                    session.question_round_count += 1
+                    session.messages.append({"role": "assistant", "type": "questions", "content": questions})
+                    if self.repository:
+                        self.repository.update_session(session)
+                        self.repository.add_message(session.id, "assistant", "\n".join(questions))
+                        self.repository.commit()
+                    return DiagnosisResponse(type="questions", session=session, questions=questions)
+            # reply.type == "complete" 或兜底问题问完 → 落到下方生成结果
 
         if self.repository and self.repository.get_today_full_diagnosis_count(anonymous_token) >= self.DAILY_FULL_DIAGNOSIS_LIMIT:
             session.status = "cancelled"
@@ -222,7 +247,7 @@ class DiagnosisService:
         non-question assistant text (e.g. a stored result id) is ignored.
         """
         pool: set[str] = set()
-        for questions in self.question_service.QUESTIONS.values():
+        for questions in self.question_service.FALLBACK_QUESTIONS.values():
             pool.update(questions)
         asked: list[str] = []
         for message in session.messages:
