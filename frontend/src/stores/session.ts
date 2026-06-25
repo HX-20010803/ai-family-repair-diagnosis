@@ -7,18 +7,20 @@ function messageId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+function welcomeMessage(): ChatMessage {
+  return {
+    id: messageId(),
+    role: 'assistant',
+    kind: 'text',
+    text: '您好！我是您的家庭维修助手。\n\n请直接描述家里的故障现象，例如“卫生间天花板一直滴水”或“插座发黑还冒烟”，我会帮您判断风险和下一步建议。'
+  }
+}
+
 export const useSessionStore = defineStore('session', {
   state: () => ({
     sessionId: '',
     status: 'idle' as SessionStatus,
-    messages: [
-      {
-        id: messageId(),
-        role: 'assistant',
-        kind: 'text',
-        text: '请直接描述家里的故障，比如“卫生间天花板一直滴水”或“插座发黑还能用吗”。'
-      }
-    ] as ChatMessage[],
+    messages: [welcomeMessage()] as ChatMessage[],
     roundCount: 0,
     currentResult: null as DiagnosisResult | null,
     error: ''
@@ -58,6 +60,16 @@ export const useSessionStore = defineStore('session', {
       if (response.safety_notice) {
         this.messages.push({ id: messageId(), role: 'assistant', text: response.safety_notice, kind: 'safety' })
       }
+      if (response.type === 'chat' && response.message) {
+        // 阶段1：LLM 自然语言追问（维修顾问式），按普通 AI 气泡显示
+        this.status = 'asking'
+        this.messages.push({
+          id: messageId(),
+          role: 'assistant',
+          text: response.message,
+          kind: 'text'
+        })
+      }
       if (response.type === 'questions') {
         this.status = 'asking'
         this.messages.push({
@@ -84,15 +96,7 @@ export const useSessionStore = defineStore('session', {
       this.roundCount = 0
       this.currentResult = null
       this.error = ''
-      this.messages = [
-        {
-          id: messageId(),
-          role: 'assistant',
-          kind: 'text',
-          text: '请直接描述家里的故障，比如“卫生间天花板一直滴水”或“插座发黑还能用吗”。'
-        }
-      ]
+      this.messages = [welcomeMessage()]
     }
   }
 })
-
