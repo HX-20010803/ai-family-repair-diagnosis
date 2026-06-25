@@ -91,21 +91,24 @@ class DiagnosisService:
         risk = self.risk_service.assess(normalized)
         self._persist_classification_cost(session)
 
+        asked = self._collect_asked(session)
         if self.question_service.should_ask(
             normalized,
             fault_type.secondary,
             session.question_round_count,
             high_risk=risk.triggered,
         ):
-            session.question_round_count += 1
-            asked = self._collect_asked(session)
             questions = self.question_service.next_questions(fault_type.secondary, asked=asked)
-            session.messages.append({"role": "assistant", "type": "questions", "content": questions})
-            if self.repository:
-                self.repository.update_session(session)
-                self.repository.add_message(session.id, "assistant", "\n".join(questions))
-                self.repository.commit()
-            return DiagnosisResponse(type="questions", session=session, questions=questions)
+            if questions:
+                # 还有没问过的问题，继续追问
+                session.question_round_count += 1
+                session.messages.append({"role": "assistant", "type": "questions", "content": questions})
+                if self.repository:
+                    self.repository.update_session(session)
+                    self.repository.add_message(session.id, "assistant", "\n".join(questions))
+                    self.repository.commit()
+                return DiagnosisResponse(type="questions", session=session, questions=questions)
+            # 所有问题都问过了，信息足够，落到下方生成结果（避免空 questions 卡住前端）
 
         if self.repository and self.repository.get_today_full_diagnosis_count(anonymous_token) >= self.DAILY_FULL_DIAGNOSIS_LIMIT:
             session.status = "cancelled"

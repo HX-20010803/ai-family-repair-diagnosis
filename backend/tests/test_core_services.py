@@ -156,8 +156,8 @@ class DiagnosisServiceTest(unittest.TestCase):
         self.assertNotIn("漏水位置在哪里？", response.questions)
 
     def test_followup_questions_do_not_repeat_previous_round(self):
-        """A second low-context message in the same session must not re-ask
-        questions already posed in round one (PRD §8.2 multi-round follow-up)."""
+        """第二轮不重复第一轮已问的问题；问题池里的问题都问过之后，
+        直接出结果，而不是返回空 questions 把前端卡住（PRD §8.2 多轮追问）。"""
         first = self.service.handle_message(
             anonymous_token="demo-token",
             text="马桶堵了水下不去，应该怎么办",
@@ -170,10 +170,24 @@ class DiagnosisServiceTest(unittest.TestCase):
             text="马桶堵了水下不去，应该怎么办",
             session_id=first.session.id,
         )
+        # 马桶问题池 3 个、第一轮已全问 → 第二轮无新问题 → 出结果（不卡前端）
+        self.assertEqual(second.type, "result")
 
-        self.assertEqual(second.type, "questions")
-        self.assertEqual(second.session.question_round_count, 2)
-        self.assertEqual(set(second.questions).intersection(set(first.questions)), set())
+    def test_second_round_short_answer_completes_when_all_questions_asked(self):
+        """外测 bug 修复：第一轮追问后用户短回答（如"电热水器"），
+        所有问题已问过 → 第二轮出结果，不返回空 questions 卡住前端。"""
+        first = self.service.handle_message(
+            anonymous_token="demo-token",
+            text="热水器不出热水",
+        )
+        self.assertEqual(first.type, "questions")
+
+        second = self.service.handle_message(
+            anonymous_token="demo-token",
+            text="电热水器",
+            session_id=first.session.id,
+        )
+        self.assertEqual(second.type, "result", "第二轮短回答应出结果，不应卡住")
 
     def test_session_restore_recovers_asked_history(self):
         """Messages restored from the DB carry joined question strings without a
