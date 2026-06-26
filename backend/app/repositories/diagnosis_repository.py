@@ -76,6 +76,16 @@ class DiagnosisRepository:
         self.db.flush()
         return row
 
+    def create_repair_record(self, anonymous_token: str, result_id: str, house_area: str | None = None) -> None:
+        """诊断出结果时自动建一条维修记录（house_area 留空，用户在记录页补）。"""
+        from app.models.repair_record import RepairRecord
+        self.db.add(RepairRecord(
+            anonymous_token=anonymous_token,
+            diagnosis_result_id=result_id,
+            house_area=house_area,
+        ))
+        self.db.flush()
+
     def get_result(self, result_id: str) -> DiagnosisResult | None:
         return self.db.get(DiagnosisResult, result_id)
 

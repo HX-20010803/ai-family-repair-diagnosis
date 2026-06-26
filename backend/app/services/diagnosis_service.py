@@ -100,7 +100,9 @@ class DiagnosisService:
         risk = self.risk_service.assess(normalized)
         self._persist_classification_cost(session)
 
-        if self.question_service.should_ask(
+        # 用户确认出结果（上一轮 AI 征求同意 + 当前确认词）→ 直接出结论，不再追问
+        user_confirms = (not risk.triggered) and self._is_user_confirming(session, normalized)
+        if not user_confirms and self.question_service.should_ask(
             normalized,
             fault_type.secondary,
             session.question_round_count,
@@ -163,6 +165,7 @@ class DiagnosisService:
         if self.repository:
             self.repository.update_session(session)
             self.repository.save_result(result)
+            self.repository.create_repair_record(anonymous_token, result.id)  # 自动落维修记录
             self.repository.increment_today_full_diagnosis_count(anonymous_token)
             self.repository.add_cost_log(
                 session.id,
@@ -286,6 +289,21 @@ class DiagnosisService:
             label = "用户" if role == "user" else "维修顾问"
             parts.append(f"{label}：{text}")
         return "\n".join(parts)
+
+    def _is_user_confirming(self, session: DiagnosisSession, text: str) -> bool:
+        """用户是否在确认出结果：上一轮 AI 征求了同意 + 当前是确认词。"""
+        CONFIRM_WORDS = ("好", "是的", "出吧", "可以", "行", "没问题", "确认", "ok", "要", "给吧", "就这样", "好呀", "好吧")
+        last_assistant = ""
+        for m in reversed(session.messages):
+            if m.get("role") == "assistant":
+                content = m.get("content")
+                last_assistant = "\n".join(content) if isinstance(content, list) else str(content or "")
+                break
+        if not last_assistant:
+            return False
+        asked = any(w in last_assistant for w in ("结论", "出结果", "整理", "诊断结果", "要我"))
+        confirms = any(w in text for w in CONFIRM_WORDS)
+        return asked and confirms
 
     def _build_result(
         self,

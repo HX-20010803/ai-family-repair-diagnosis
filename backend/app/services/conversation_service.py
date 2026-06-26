@@ -45,10 +45,12 @@ class ConversationService:
                 text=risk.action or "检测到安全风险，建议优先确保人身安全并联系专业人员。",
             )
 
-        # 组装 system prompt：注入初步故障分类 + 关键字段清单
+        # 组装 system prompt：注入初步故障分类 + 关键字段清单 + 当前进度
         fields_line = "、".join(required_fields) if required_fields else "（按用户描述判断，无特定字段要求）"
+        round_num = session.question_round_count
         system = (
-            f"初步故障分类：{fault_type.primary} / {fault_type.secondary}\n\n"
+            f"初步故障分类：{fault_type.primary} / {fault_type.secondary}\n"
+            f"当前进度：已对话 {round_num} 轮（上限 4 轮）。\n\n"
             + CONVERSATION_SYSTEM_PROMPT.replace("{required_fields}", fields_line)
         )
         messages: list[dict[str, str]] = [{"role": "system", "content": system}]

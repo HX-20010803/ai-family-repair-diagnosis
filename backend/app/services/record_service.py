@@ -20,6 +20,28 @@ class RecordService:
         actual_cost: float | None = None,
         provider_name: str | None = None,
     ) -> RepairRecord:
+        # 同一个诊断结果只建一条记录：complete 时已自动建过，前端再点"保存"或补充信息时 update
+        existing = self.db.execute(
+            select(RepairRecord).where(RepairRecord.diagnosis_result_id == diagnosis_result_id)
+        ).scalars().first()
+        if existing:
+            changed = False
+            if house_area is not None and existing.house_area is None:
+                existing.house_area = house_area
+                changed = True
+            if actual_solution is not None and existing.actual_solution is None:
+                existing.actual_solution = actual_solution
+                changed = True
+            if actual_cost is not None and existing.actual_cost is None:
+                existing.actual_cost = actual_cost
+                changed = True
+            if provider_name is not None and existing.provider_name is None:
+                existing.provider_name = provider_name
+                changed = True
+            if changed:
+                self.db.commit()
+                self.db.refresh(existing)
+            return existing
         row = RepairRecord(
             anonymous_token=anonymous_token,
             diagnosis_result_id=diagnosis_result_id,
