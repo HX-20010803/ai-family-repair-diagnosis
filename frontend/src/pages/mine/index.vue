@@ -19,7 +19,7 @@
       <view class="card-title">添加房屋</view>
       <view class="form-row">
         <view class="form-label">城市</view>
-        <input v-model="newCity" class="form-input" maxlength="32" placeholder="如：深圳" />
+        <input :value="newCity" @input="onCityInput" class="form-input" maxlength="32" placeholder="如：深圳" />
       </view>
       <view class="form-row">
         <view class="form-label">城市能级</view>
@@ -36,7 +36,7 @@
       </view>
       <view class="form-row">
         <view class="form-label">小区名（可选）</view>
-        <input v-model="newCommunity" class="form-input" maxlength="40" placeholder="可选" />
+        <input :value="newCommunity" @input="onCommunityInput" class="form-input" maxlength="40" placeholder="可选" />
       </view>
       <button class="primary-button" type="button" :disabled="!newCity.trim() || submitting" @click="addHouse">添加房屋</button>
     </view>
@@ -134,6 +134,14 @@ const tierOptions = [
 ]
 
 const quickRooms = ['厨房', '卫生间', '客厅', '卧室', '阳台', '入户门']
+
+// uni-app <input> 的 v-model 在部分 H5 浏览器不更新 ref，改用 :value + @input 手动绑定
+function onCityInput(e: any) {
+  newCity.value = String(e.detail?.value ?? e.target?.value ?? '')
+}
+function onCommunityInput(e: any) {
+  newCommunity.value = String(e.detail?.value ?? e.target?.value ?? '')
+}
 
 function isActive(house: House): boolean {
   return houses.activeCityTier === house.city_tier && houses.items.findIndex((h) => h.city_tier === house.city_tier) === houses.items.indexOf(house)
