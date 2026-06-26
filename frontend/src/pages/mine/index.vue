@@ -93,6 +93,18 @@
         <button class="danger-button" type="button" @click="removeHouse(house.id)">删除房屋</button>
       </view>
     </view>
+
+    <!-- 编辑弹窗（自定义 overlay，H5 兼容） -->
+    <view v-if="editing" class="edit-overlay" @click.self="cancelEdit">
+      <view class="edit-modal">
+        <view class="edit-modal-title">{{ editingTitle }}</view>
+        <input v-model="editingValue" class="edit-modal-input" :maxlength="64" @confirm="saveEdit" />
+        <view class="edit-modal-actions">
+          <button class="edit-modal-btn cancel" type="button" @click="cancelEdit">取消</button>
+          <button class="edit-modal-btn confirm" type="button" :disabled="!editingValue.trim() || saving" @click="saveEdit">保存</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -108,6 +120,13 @@ const newCity = ref('')
 const newTier = ref<CityTier>('other')
 const newCommunity = ref('')
 const roomDrafts = reactive<Record<string, string>>({})
+
+// 编辑弹窗状态（自定义 overlay，H5 兼容，不依赖 uni.showModal editable）
+const editing = ref(false)
+const editingTitle = ref('')
+const editingValue = ref('')
+const editingTarget = ref<{ type: 'house' | 'room'; houseId?: string; id: string } | null>(null)
+const saving = ref(false)
 
 const tierOptions = [
   { label: '一线城市', value: 'tier1' as const },
@@ -167,41 +186,43 @@ async function addCustomRoom(houseId: string) {
 }
 
 function editHouseName(house: House) {
-  uni.showModal({
-    title: '修改城市',
-    editable: true,
-    content: house.city,
-    placeholderText: '输入新的城市名',
-    success: async (res) => {
-      const content = (res.content || '').trim()
-      if (!res.confirm || !content) return
-      try {
-        await houses.editHouse(house.id, { city: content })
-        uni.showToast({ title: '已修改', icon: 'success' })
-      } catch (error) {
-        uni.showToast({ title: error instanceof Error ? error.message : '修改失败', icon: 'none' })
-      }
-    }
-  })
+  editingTarget.value = { type: 'house', id: house.id }
+  editingTitle.value = '修改城市'
+  editingValue.value = house.city
+  editing.value = true
 }
 
 function editRoomName(houseId: string, room: { id: string; room_name: string }) {
-  uni.showModal({
-    title: '修改房间名',
-    editable: true,
-    content: room.room_name,
-    placeholderText: '输入新的房间名',
-    success: async (res) => {
-      const content = (res.content || '').trim()
-      if (!res.confirm || !content) return
-      try {
-        await houses.editRoom(houseId, room.id, content)
-        uni.showToast({ title: '已修改', icon: 'success' })
-      } catch (error) {
-        uni.showToast({ title: error instanceof Error ? error.message : '修改失败', icon: 'none' })
-      }
+  editingTarget.value = { type: 'room', houseId, id: room.id }
+  editingTitle.value = '修改房间名'
+  editingValue.value = room.room_name
+  editing.value = true
+}
+
+function cancelEdit() {
+  editing.value = false
+  editingTarget.value = null
+}
+
+async function saveEdit() {
+  const value = editingValue.value.trim()
+  const target = editingTarget.value
+  if (!value || !target || saving.value) return
+  saving.value = true
+  try {
+    if (target.type === 'house') {
+      await houses.editHouse(target.id, { city: value })
+    } else if (target.houseId) {
+      await houses.editRoom(target.houseId, target.id, value)
     }
-  })
+    uni.showToast({ title: '已修改', icon: 'success' })
+    editing.value = false
+    editingTarget.value = null
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '修改失败', icon: 'none' })
+  } finally {
+    saving.value = false
+  }
 }
 
 onMounted(() => {
@@ -456,5 +477,77 @@ onMounted(() => {
 
 .empty-house {
   text-align: center;
+}
+
+/* 编辑弹窗 overlay */
+.edit-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.edit-modal {
+  width: 80%;
+  max-width: 320px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 18px 16px 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+.edit-modal-title {
+  font-size: 16px;
+  font-weight: 780;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.edit-modal-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+  font-size: 15px;
+  margin-bottom: 14px;
+}
+
+.edit-modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-modal-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.edit-modal-btn::after {
+  border: 0;
+}
+
+.edit-modal-btn.cancel {
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+}
+
+.edit-modal-btn.confirm {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.edit-modal-btn.confirm[disabled] {
+  opacity: 0.6;
 }
 </style>
