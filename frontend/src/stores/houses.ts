@@ -3,8 +3,10 @@ import {
   fetchHouses,
   createHouse,
   deleteHouse,
+  updateHouse,
   createRoom,
   deleteRoom,
+  updateRoom,
   type House,
   type HouseCreate,
   type CityTier
@@ -67,6 +69,24 @@ export const useHousesStore = defineStore('houses', {
       this.items = this.items.map((house) =>
         house.id === houseId ? { ...house, rooms: house.rooms.filter((r) => r.id !== roomId) } : house
       )
+    },
+    async editHouse(id: string, payload: Partial<HouseCreate>) {
+      const updated = await updateHouse(id, payload)
+      this.items = this.items.map((house) => (house.id === id ? updated : house))
+      if (this.activeCityTier && this.items.some((h) => h.id === id)) {
+        // 同步当前生效能级
+        this.activeCityTier = updated.city_tier
+      }
+      return updated
+    },
+    async editRoom(houseId: string, roomId: string, roomName: string) {
+      const updated = await updateRoom(houseId, roomId, roomName)
+      this.items = this.items.map((house) =>
+        house.id === houseId
+          ? { ...house, rooms: house.rooms.map((r) => (r.id === roomId ? updated : r)) }
+          : house
+      )
+      return updated
     },
     setActiveCityTier(tier: CityTier) {
       this.activeCityTier = tier

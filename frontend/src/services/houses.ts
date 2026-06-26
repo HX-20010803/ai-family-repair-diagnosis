@@ -39,6 +39,13 @@ export function deleteHouse(id: string): Promise<{ deleted: boolean }> {
   return apiRequest(`/houses/${id}`, { method: 'DELETE' })
 }
 
+export function updateHouse(id: string, payload: Partial<HouseCreate>): Promise<House> {
+  return apiRequest<House>(`/houses/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload)
+  })
+}
+
 export function createRoom(houseId: string, roomName: string): Promise<Room> {
   return apiRequest<Room>(`/houses/${houseId}/rooms`, {
     method: 'POST',
@@ -48,4 +55,11 @@ export function createRoom(houseId: string, roomName: string): Promise<Room> {
 
 export function deleteRoom(houseId: string, roomId: string): Promise<{ deleted: boolean }> {
   return apiRequest(`/houses/${houseId}/rooms/${roomId}`, { method: 'DELETE' })
+}
+
+export function updateRoom(houseId: string, roomId: string, roomName: string): Promise<Room> {
+  return apiRequest<Room>(`/houses/${houseId}/rooms/${roomId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ room_name: roomName })
+  })
 }

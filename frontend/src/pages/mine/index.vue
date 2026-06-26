@@ -62,11 +62,12 @@
             <view class="card-tag">{{ house.city_tier === 'tier1' ? '一线' : '其他' }}</view>
             <view v-if="isActive(house)" class="card-tag active-tag">当前</view>
             <button v-else class="link-button" type="button" @click="houses.setActiveCityTier(house.city_tier)">设为当前</button>
+            <button class="link-button" type="button" @click="editHouseName(house)">编辑</button>
           </view>
         </view>
 
         <view class="rooms">
-          <view v-for="room in house.rooms" :key="room.id" class="room-chip">
+          <view v-for="room in house.rooms" :key="room.id" class="room-chip" @click="editRoomName(house.id, room)">
             {{ room.room_name }}
             <text class="room-remove" @click.stop="houses.removeRoom(house.id, room.id)">×</text>
           </view>
@@ -163,6 +164,44 @@ async function addCustomRoom(houseId: string) {
   } catch (error) {
     uni.showToast({ title: error instanceof Error ? error.message : '添加失败', icon: 'none' })
   }
+}
+
+function editHouseName(house: House) {
+  uni.showModal({
+    title: '修改城市',
+    editable: true,
+    content: house.city,
+    placeholderText: '输入新的城市名',
+    success: async (res) => {
+      const content = (res.content || '').trim()
+      if (!res.confirm || !content) return
+      try {
+        await houses.editHouse(house.id, { city: content })
+        uni.showToast({ title: '已修改', icon: 'success' })
+      } catch (error) {
+        uni.showToast({ title: error instanceof Error ? error.message : '修改失败', icon: 'none' })
+      }
+    }
+  })
+}
+
+function editRoomName(houseId: string, room: { id: string; room_name: string }) {
+  uni.showModal({
+    title: '修改房间名',
+    editable: true,
+    content: room.room_name,
+    placeholderText: '输入新的房间名',
+    success: async (res) => {
+      const content = (res.content || '').trim()
+      if (!res.confirm || !content) return
+      try {
+        await houses.editRoom(houseId, room.id, content)
+        uni.showToast({ title: '已修改', icon: 'success' })
+      } catch (error) {
+        uni.showToast({ title: error instanceof Error ? error.message : '修改失败', icon: 'none' })
+      }
+    }
+  })
 }
 
 onMounted(() => {

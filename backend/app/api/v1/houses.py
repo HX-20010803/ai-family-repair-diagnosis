@@ -22,6 +22,16 @@ class RoomCreate(BaseModel):
     room_name: str = Field(min_length=1, max_length=64)
 
 
+class HouseUpdate(BaseModel):
+    city: str | None = Field(default=None, min_length=1, max_length=64)
+    city_tier: Literal["tier1", "other"] | None = None
+    community_name: str | None = Field(default=None, max_length=128)
+
+
+class RoomUpdate(BaseModel):
+    room_name: str | None = Field(default=None, min_length=1, max_length=64)
+
+
 @router.get("")
 def list_houses(x_anonymous_token: str = Header(default="anonymous-demo"), db=Depends(get_db)) -> dict:
     service = HouseService(db)
@@ -58,6 +68,26 @@ def delete_house(
     return {"deleted": True}
 
 
+@router.patch("/{house_id}")
+def update_house(
+    house_id: str,
+    payload: HouseUpdate,
+    x_anonymous_token: str = Header(default="anonymous-demo"),
+    db=Depends(get_db),
+) -> dict:
+    service = HouseService(db)
+    house = service.update_house(
+        house_id=house_id,
+        anonymous_token=x_anonymous_token,
+        city=payload.city,
+        city_tier=payload.city_tier,
+        community_name=payload.community_name,
+    )
+    if house is None:
+        raise HTTPException(status_code=404, detail={"code": "HOUSE_NOT_FOUND"})
+    return _house_with_rooms(service, house)
+
+
 @router.post("/{house_id}/rooms")
 def create_room(
     house_id: str,
@@ -84,6 +114,21 @@ def delete_room(
     if not deleted:
         raise HTTPException(status_code=404, detail={"code": "ROOM_NOT_FOUND"})
     return {"deleted": True}
+
+
+@router.patch("/{house_id}/rooms/{room_id}")
+def update_room(
+    house_id: str,
+    room_id: str,
+    payload: RoomUpdate,
+    x_anonymous_token: str = Header(default="anonymous-demo"),
+    db=Depends(get_db),
+) -> dict:
+    service = HouseService(db)
+    room = service.update_room(room_id=room_id, anonymous_token=x_anonymous_token, room_name=payload.room_name)
+    if room is None:
+        raise HTTPException(status_code=404, detail={"code": "ROOM_NOT_FOUND"})
+    return _room_to_dict(room)
 
 
 def _room_to_dict(room: Room) -> dict:

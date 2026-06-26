@@ -50,6 +50,27 @@ class HouseService:
         self.db.commit()
         return True
 
+    def update_house(
+        self,
+        house_id: str,
+        anonymous_token: str,
+        city: str | None = None,
+        city_tier: str | None = None,
+        community_name: str | None = None,
+    ) -> House | None:
+        row = self.db.get(House, house_id)
+        if row is None or row.anonymous_token != anonymous_token:
+            return None
+        if city is not None:
+            row.city = city
+        if city_tier is not None:
+            row.city_tier = city_tier if city_tier in VALID_CITY_TIERS else "other"
+        if community_name is not None:
+            row.community_name = community_name
+        self.db.commit()
+        self.db.refresh(row)
+        return row
+
     def list_rooms(self, house_id: str) -> list[Room]:
         stmt = select(Room).where(Room.house_id == house_id).order_by(Room.created_at.asc())
         return list(self.db.scalars(stmt))
@@ -73,3 +94,16 @@ class HouseService:
         self.db.delete(row)
         self.db.commit()
         return True
+
+    def update_room(self, room_id: str, anonymous_token: str, room_name: str | None = None) -> Room | None:
+        row = self.db.get(Room, room_id)
+        if row is None:
+            return None
+        house = self.db.get(House, row.house_id)
+        if house is None or house.anonymous_token != anonymous_token:
+            return None
+        if room_name is not None:
+            row.room_name = room_name
+        self.db.commit()
+        self.db.refresh(row)
+        return row
