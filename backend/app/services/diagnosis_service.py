@@ -136,7 +136,7 @@ class DiagnosisService:
                 safety_notice="今日免费完整诊断次数已用完，请明天再试。",
             )
 
-        result = self._build_result(session, normalized, fault_type, risk, city_tier)
+        result = self._build_result(session, fault_type, risk, city_tier)
         try:
             output_safe, output_hits = self.content_safety_service.check_text(self._result_text_for_safety(result))
         except ContentSafetyProviderError as exc:
@@ -271,14 +271,31 @@ class DiagnosisService:
             latency_ms=self.classification_service.last_latency_ms,
         )
 
+    def _dialog_text(self, session: DiagnosisSession) -> str:
+        """把会话历史拼成「用户：... / 维修顾问：...」的完整对话文本，
+        供诊断结果生成使用——避免只看最后一条导致结果泛化模板化。"""
+        parts: list[str] = []
+        for m in session.messages:
+            role = m.get("role")
+            content = m.get("content")
+            if role not in ("user", "assistant") or not content:
+                continue
+            text = "\n".join(content) if isinstance(content, list) else str(content)
+            if role == "assistant" and text.startswith(("diag_", "QUOTA")):
+                continue
+            label = "用户" if role == "user" else "维修顾问"
+            parts.append(f"{label}：{text}")
+        return "\n".join(parts)
+
     def _build_result(
         self,
         session: DiagnosisSession,
-        text: str,
         fault_type: FaultType,
         risk,
         city_tier: str | None,
     ) -> DiagnosisResult:
+        # 用完整对话历史（不只最后一条），让诊断结果针对该用户的具体情况，而非泛化模板
+        text = self._dialog_text(session)
         knowledge = self.rag_service.retrieve(fault_type.secondary, text)
         price: PriceReference = self.price_service.match(fault_type.secondary, city_tier)
         cost_log = self.cost_service.estimate_template_call()
@@ -345,12 +362,15 @@ class DiagnosisService:
             {
                 "role": "user",
                 "content": (
-                    "请基于以下结构化信息生成诊断结果 JSON，仅输出 JSON：\n"
-                    f"用户描述：{text}\n"
+                    "请基于以下【完整对话】和结构化信息，生成针对该用户【具体情况】的诊断结果 JSON，仅输出 JSON：\n"
+                    f"完整对话：\n{text}\n\n"
                     f"故障分类：{fault_type.primary}/{fault_type.secondary}\n"
                     f"紧急等级：{urgency_level}\n"
                     f"风险动作：{risk.action or ''}\n"
-                    f"知识库：{knowledge}\n"
+                    f"知识库参考（可借鉴但禁止照抄）：{knowledge}\n\n"
+                    "重要：possible_causes 和 recommended_actions 必须紧扣对话里的具体情况"
+                    "（设备类型 / 使用年限 / 具体现象 / 用户已排除项），给出有区分度的判断，"
+                    "不要给放之四海皆准的泛化模板。如果对话信息不足以区分，uncertainty_note 要如实说明。\n"
                     "字段：possible_causes, recommended_actions, forbidden_actions, self_check_steps, "
                     "need_professional, need_professional_reason, uncertainty_note"
                 ),
