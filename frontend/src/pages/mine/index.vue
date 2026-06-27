@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="page-shell">
     <view class="app-header">
       <view>
@@ -8,9 +8,13 @@
     </view>
 
     <view class="panel block active-card">
-      <view class="card-title">当前生效城市能级</view>
+      <view class="card-title">当前生效家庭</view>
       <view class="card-copy">
-        {{ houses.activeCityTier === 'tier1' ? '一线城市' : (houses.activeCityTier === 'other' ? '其他城市' : '未设置') }} · 诊断时按此匹配参考价格
+        <template v-if="houses.activeHouse">
+          {{ houses.activeHouse.city }}{{ houses.activeHouse.community_name ? ' · ' + houses.activeHouse.community_name : '' }} ·
+          {{ houses.activeHouse.city_tier === 'tier1' ? '一线城市' : '其他城市' }}
+        </template>
+        <template v-else>未设置 · 诊断时按默认参考价格</template>
       </view>
       <view class="card-copy muted-copy">H5 阶段使用本地匿名标识，清缓存后房屋数据可能丢失</view>
     </view>
@@ -57,17 +61,19 @@
         :class="{ 'house-active': isActive(house) }"
       >
         <view class="house-head">
-          <view class="house-title">{{ house.city }}{{ house.community_name ? ' · ' + house.community_name : '' }}</view>
+          <view>
+            <view class="house-title">{{ house.city }}{{ house.community_name ? ' · ' + house.community_name : '' }}</view>
+            <view class="house-meta">{{ house.city_tier === 'tier1' ? '一线城市' : '其他城市' }}</view>
+          </view>
           <view class="house-tags">
-            <view class="card-tag">{{ house.city_tier === 'tier1' ? '一线' : '其他' }}</view>
             <view v-if="isActive(house)" class="card-tag active-tag">当前</view>
-            <button v-else class="link-button" type="button" @click="houses.setActiveCityTier(house.city_tier)">设为当前</button>
-            <button class="link-button" type="button" @click="editHouseName(house)">编辑</button>
+            <button v-else class="link-button" type="button" @click="houses.setActiveHouse(house)">设为当前</button>
+            <button class="link-button" type="button" @click="openHouseEditor(house)">编辑</button>
           </view>
         </view>
 
         <view class="rooms">
-          <view v-for="room in house.rooms" :key="room.id" class="room-chip" @click="editRoomName(house.id, room)">
+          <view v-for="room in house.rooms" :key="room.id" class="room-chip" @click="openRoomEditor(house.id, room)">
             {{ room.room_name }}
             <text class="room-remove" @click.stop="houses.removeRoom(house.id, room.id)">×</text>
           </view>
@@ -85,7 +91,13 @@
             >+ {{ name }}</button>
           </view>
           <view class="room-input-row">
-            <input v-model="roomDrafts[house.id]" class="form-input room-input" maxlength="20" placeholder="自定义房间" />
+            <input
+              :value="roomDrafts[house.id] || ''"
+              class="form-input room-input"
+              maxlength="20"
+              placeholder="自定义房间"
+              @input="onRoomDraftInput(house.id, $event)"
+            />
             <button class="small-button" type="button" :disabled="!(roomDrafts[house.id] || '').trim()" @click="addCustomRoom(house.id)">添加</button>
           </view>
         </view>
@@ -94,14 +106,41 @@
       </view>
     </view>
 
-    <!-- 编辑弹窗（自定义 overlay，H5 兼容） -->
     <view v-if="editing" class="edit-overlay" @click.self="cancelEdit">
       <view class="edit-modal">
         <view class="edit-modal-title">{{ editingTitle }}</view>
-        <input v-model="editingValue" class="edit-modal-input" :maxlength="64" @confirm="saveEdit" />
+
+        <template v-if="editingTarget?.type === 'house'">
+          <view class="form-row compact-row">
+            <view class="form-label">城市</view>
+            <input :value="editHouseForm.city" class="edit-modal-input" maxlength="32" placeholder="如：深圳" @input="onEditHouseCityInput" />
+          </view>
+          <view class="form-row compact-row">
+            <view class="form-label">城市能级</view>
+            <view class="chip-row">
+              <button
+                v-for="opt in tierOptions"
+                :key="opt.value"
+                class="chip"
+                :class="{ active: editHouseForm.city_tier === opt.value }"
+                type="button"
+                @click="editHouseForm.city_tier = opt.value"
+              >{{ opt.label }}</button>
+            </view>
+          </view>
+          <view class="form-row compact-row">
+            <view class="form-label">小区名（可选）</view>
+            <input :value="editHouseForm.community_name" class="edit-modal-input" maxlength="40" placeholder="可选" @input="onEditHouseCommunityInput" />
+          </view>
+        </template>
+
+        <template v-else>
+          <input :value="editingValue" class="edit-modal-input" :maxlength="64" placeholder="房间名" @input="onEditValueInput" @confirm="saveEdit" />
+        </template>
+
         <view class="edit-modal-actions">
           <button class="edit-modal-btn cancel" type="button" @click="cancelEdit">取消</button>
-          <button class="edit-modal-btn confirm" type="button" :disabled="!editingValue.trim() || saving" @click="saveEdit">保存</button>
+          <button class="edit-modal-btn confirm" type="button" :disabled="!canSaveEdit || saving" @click="saveEdit">保存</button>
         </view>
       </view>
     </view>
@@ -109,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useHousesStore } from '../../stores/houses'
 import type { CityTier, House } from '../../services/houses'
 
@@ -121,11 +160,15 @@ const newTier = ref<CityTier>('other')
 const newCommunity = ref('')
 const roomDrafts = reactive<Record<string, string>>({})
 
-// 编辑弹窗状态（自定义 overlay，H5 兼容，不依赖 uni.showModal editable）
 const editing = ref(false)
 const editingTitle = ref('')
 const editingValue = ref('')
 const editingTarget = ref<{ type: 'house' | 'room'; houseId?: string; id: string } | null>(null)
+const editHouseForm = reactive<{ city: string; city_tier: CityTier; community_name: string }>({
+  city: '',
+  city_tier: 'other',
+  community_name: ''
+})
 const saving = ref(false)
 
 const tierOptions = [
@@ -135,27 +178,50 @@ const tierOptions = [
 
 const quickRooms = ['厨房', '卫生间', '客厅', '卧室', '阳台', '入户门']
 
-// uni-app <input> 的 v-model 在部分 H5 浏览器不更新 ref，改用 :value + @input 手动绑定
+const canSaveEdit = computed(() => {
+  const target = editingTarget.value
+  if (!target) return false
+  if (target.type === 'house') return Boolean(editHouseForm.city.trim())
+  return Boolean(editingValue.value.trim())
+})
+
+function inputValue(e: any) {
+  return String(e.detail?.value ?? e.target?.value ?? '')
+}
+
 function onCityInput(e: any) {
-  newCity.value = String(e.detail?.value ?? e.target?.value ?? '')
+  newCity.value = inputValue(e)
 }
 function onCommunityInput(e: any) {
-  newCommunity.value = String(e.detail?.value ?? e.target?.value ?? '')
+  newCommunity.value = inputValue(e)
+}
+function onRoomDraftInput(houseId: string, e: any) {
+  roomDrafts[houseId] = inputValue(e)
+}
+function onEditValueInput(e: any) {
+  editingValue.value = inputValue(e)
+}
+function onEditHouseCityInput(e: any) {
+  editHouseForm.city = inputValue(e)
+}
+function onEditHouseCommunityInput(e: any) {
+  editHouseForm.community_name = inputValue(e)
 }
 
 function isActive(house: House): boolean {
-  return houses.activeCityTier === house.city_tier && houses.items.findIndex((h) => h.city_tier === house.city_tier) === houses.items.indexOf(house)
+  return houses.activeHouseId === house.id
 }
 
 async function addHouse() {
   if (!newCity.value.trim() || submitting.value) return
   submitting.value = true
   try {
-    await houses.addHouse({
+    const house = await houses.addHouse({
       city: newCity.value.trim(),
       city_tier: newTier.value,
-      community_name: newCommunity.value.trim() || undefined
+      community_name: newCommunity.value.trim()
     })
+    houses.setActiveHouse(house)
     newCity.value = ''
     newCommunity.value = ''
     uni.showToast({ title: '已添加', icon: 'success' })
@@ -193,14 +259,16 @@ async function addCustomRoom(houseId: string) {
   }
 }
 
-function editHouseName(house: House) {
+function openHouseEditor(house: House) {
   editingTarget.value = { type: 'house', id: house.id }
-  editingTitle.value = '修改城市'
-  editingValue.value = house.city
+  editingTitle.value = '编辑房屋'
+  editHouseForm.city = house.city
+  editHouseForm.city_tier = house.city_tier
+  editHouseForm.community_name = house.community_name || ''
   editing.value = true
 }
 
-function editRoomName(houseId: string, room: { id: string; room_name: string }) {
+function openRoomEditor(houseId: string, room: { id: string; room_name: string }) {
   editingTarget.value = { type: 'room', houseId, id: room.id }
   editingTitle.value = '修改房间名'
   editingValue.value = room.room_name
@@ -213,15 +281,18 @@ function cancelEdit() {
 }
 
 async function saveEdit() {
-  const value = editingValue.value.trim()
   const target = editingTarget.value
-  if (!value || !target || saving.value) return
+  if (!target || !canSaveEdit.value || saving.value) return
   saving.value = true
   try {
     if (target.type === 'house') {
-      await houses.editHouse(target.id, { city: value })
+      await houses.editHouse(target.id, {
+        city: editHouseForm.city.trim(),
+        city_tier: editHouseForm.city_tier,
+        community_name: editHouseForm.community_name.trim()
+      })
     } else if (target.houseId) {
-      await houses.editRoom(target.houseId, target.id, value)
+      await houses.editRoom(target.houseId, target.id, editingValue.value.trim())
     }
     uni.showToast({ title: '已修改', icon: 'success' })
     editing.value = false
@@ -266,7 +337,7 @@ onMounted(() => {
 
 .house-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
@@ -276,8 +347,16 @@ onMounted(() => {
   font-weight: 780;
 }
 
+.house-meta {
+  margin-top: 3px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
 .house-tags {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 6px;
 }
@@ -373,6 +452,10 @@ onMounted(() => {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 10px;
+}
+
+.compact-row {
+  margin-bottom: 9px;
 }
 
 .form-label {
@@ -487,7 +570,6 @@ onMounted(() => {
   text-align: center;
 }
 
-/* 编辑弹窗 overlay */
 .edit-overlay {
   position: fixed;
   top: 0;
@@ -502,8 +584,8 @@ onMounted(() => {
 }
 
 .edit-modal {
-  width: 80%;
-  max-width: 320px;
+  width: 84%;
+  max-width: 340px;
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   padding: 18px 16px 14px;
@@ -524,12 +606,12 @@ onMounted(() => {
   border-radius: var(--radius-md);
   background: var(--color-surface-soft);
   font-size: 15px;
-  margin-bottom: 14px;
 }
 
 .edit-modal-actions {
   display: flex;
   gap: 10px;
+  margin-top: 14px;
 }
 
 .edit-modal-btn {
