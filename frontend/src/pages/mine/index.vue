@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page-shell">
     <view class="app-header">
       <view>
@@ -639,5 +639,25 @@ onMounted(() => {
 
 .edit-modal-btn.confirm[disabled] {
   opacity: 0.6;
+}
+
+/* uni-app H5 renders <input> as <uni-input><input class="uni-input-input">.
+   The inner input can collapse to 0px height unless the wrapper has an explicit height. */
+.form-input,
+.edit-modal-input {
+  min-height: 40px;
+  height: 40px;
+  line-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.form-input :deep(.uni-input-wrapper),
+.form-input :deep(.uni-input-input),
+.edit-modal-input :deep(.uni-input-wrapper),
+.edit-modal-input :deep(.uni-input-input) {
+  width: 100%;
+  height: 100%;
+  line-height: 40px;
 }
 </style>
