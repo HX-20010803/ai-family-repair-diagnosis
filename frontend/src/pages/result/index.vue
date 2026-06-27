@@ -8,6 +8,11 @@
     </view>
 
     <view v-if="result" class="result-detail">
+      <view v-if="result.advisor_summary" class="panel block advisor-block">
+        <view class="card-title">维修顾问的话</view>
+        <view class="advisor-text">{{ result.advisor_summary }}</view>
+      </view>
+
       <view class="urgency panel">
         <view class="urgency-level" :class="`level-${result.urgency.level}`">{{ result.urgency.level }}</view>
         <view>
@@ -211,6 +216,18 @@ async function submitFeedback() {
 .danger-block {
   border-color: #f0b7ad;
   background: #fff7f6;
+}
+
+.advisor-block {
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-surface-soft);
+}
+
+.advisor-text {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text);
 }
 
 .card-title {

@@ -34,6 +34,7 @@ export interface DiagnosisResult {
     version: string
   } | null
   uncertainty_note: string | null
+  advisor_summary: string | null
   cost_total: number
 }
 

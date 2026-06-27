@@ -37,7 +37,7 @@ class ConversationService:
         self.llm_adapter = llm_adapter
         self.question_service = question_service
 
-    def next_reply(self, session, fault_type, risk, required_fields: list[str]) -> ConversationReply:
+    def next_reply(self, session, fault_type, risk, required_fields: list[str], user_profile: str = "") -> ConversationReply:
         # 高风险：规则直接 complete，不追问（安全优先，PRD §8.4 / §18.6）
         if risk.triggered:
             return ConversationReply(
@@ -45,12 +45,13 @@ class ConversationService:
                 text=risk.action or "检测到安全风险，建议优先确保人身安全并联系专业人员。",
             )
 
-        # 组装 system prompt：注入初步故障分类 + 关键字段清单 + 当前进度
+        # 组装 system prompt：注入初步故障分类 + 关键字段清单 + 当前进度 + 用户画像
         fields_line = "、".join(required_fields) if required_fields else "（按用户描述判断，无特定字段要求）"
         round_num = session.question_round_count
         system = (
             f"初步故障分类：{fault_type.primary} / {fault_type.secondary}\n"
-            f"当前进度：已对话 {round_num} 轮（上限 4 轮）。\n\n"
+            f"当前进度：已对话 {round_num} 轮（上限 4 轮）。\n"
+            + (f"{user_profile}\n\n" if user_profile else "\n")
             + CONVERSATION_SYSTEM_PROMPT.replace("{required_fields}", fields_line)
         )
         messages: list[dict[str, str]] = [{"role": "system", "content": system}]

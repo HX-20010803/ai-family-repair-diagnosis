@@ -58,6 +58,7 @@ class DiagnosisResult:
     need_professional_reason: str
     price_reference: PriceReference | None
     uncertainty_note: str | None
+    advisor_summary: str | None
     model_provider: str
     model_version: str
     prompt_version: str

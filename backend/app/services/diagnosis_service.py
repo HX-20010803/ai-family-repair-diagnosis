@@ -18,6 +18,7 @@ from app.services.content_safety_service import ContentSafetyProviderError, Cont
 from app.services.classification_service import ClassificationService
 from app.services.conversation_service import ConversationService
 from app.services.cost_service import CostService
+from app.services.user_profile_service import UserProfileService
 from app.services.price_service import PriceService
 from app.services.question_service import QuestionService
 from app.services.rag_service import RagService
@@ -49,6 +50,7 @@ class DiagnosisService:
         self.risk_service = RiskService()
         self.question_service = QuestionService()
         self.conversation_service = ConversationService(self.llm_adapter)
+        self.user_profile_service = UserProfileService(repository)
         self.price_service = PriceService()
         self.rag_service = RagService()
         self.content_safety_service = content_safety_service or ContentSafetyService()
@@ -115,6 +117,7 @@ class DiagnosisService:
                 fault_type,
                 risk,
                 self.question_service.required_fields(fault_type.secondary),
+                user_profile=self.user_profile_service.build_profile(anonymous_token),
             )
             if reply.type == "chat":
                 session.question_round_count += 1
@@ -138,7 +141,7 @@ class DiagnosisService:
                 safety_notice="今日免费完整诊断次数已用完，请明天再试。",
             )
 
-        result = self._build_result(session, fault_type, risk, city_tier)
+        result = self._build_result(session, fault_type, risk, city_tier, self.user_profile_service.build_profile(anonymous_token))
         try:
             output_safe, output_hits = self.content_safety_service.check_text(self._result_text_for_safety(result))
         except ContentSafetyProviderError as exc:
@@ -311,6 +314,7 @@ class DiagnosisService:
         fault_type: FaultType,
         risk,
         city_tier: str | None,
+        user_profile: str = "",
     ) -> DiagnosisResult:
         # 用完整对话历史（不只最后一条），让诊断结果针对该用户的具体情况，而非泛化模板
         text = self._dialog_text(session)
@@ -326,7 +330,7 @@ class DiagnosisService:
         need_professional = "yes" if urgency_level in ("S", "A") or knowledge["professional_required"] else "conditional"
         uncertainty_note = None if fault_type.confidence >= 0.6 else "当前信息不足，建议补充现场位置、持续时间和异常现象后再判断。"
 
-        llm_sections = self._generate_llm_sections(text, fault_type, urgency_level, knowledge, risk)
+        llm_sections = self._generate_llm_sections(text, fault_type, urgency_level, knowledge, risk, user_profile)
         if llm_sections:
             cost_log = llm_sections["cost_log"]
             possible_causes = llm_sections["payload"].get("possible_causes") or knowledge["possible_causes"][:4]
@@ -338,6 +342,7 @@ class DiagnosisService:
                 "涉及安全风险或需要现场检测，建议联系专业人员。" if need_professional == "yes" else "可先完成低风险自查，仍异常再联系专业人员。"
             )
             uncertainty_note = llm_sections["payload"].get("uncertainty_note")
+            advisor_summary = llm_sections["payload"].get("advisor_summary")
             model_provider = llm_sections["provider"]
             model_version = llm_sections["model_version"]
             if urgency_level == "S":
@@ -347,6 +352,7 @@ class DiagnosisService:
             recommended_actions = self._recommended_actions(urgency_level, knowledge)
             self_check_steps = [] if urgency_level == "S" else knowledge["safe_self_checks"][:3]
             need_professional_reason = "涉及安全风险或需要现场检测，建议联系专业人员。" if need_professional == "yes" else "可先完成低风险自查，仍异常再联系专业人员。"
+            advisor_summary = None
             model_provider = "local-template"
             model_version = "rules-template-v1"
 
@@ -365,6 +371,7 @@ class DiagnosisService:
             need_professional_reason=need_professional_reason,
             price_reference=price,
             uncertainty_note=uncertainty_note,
+            advisor_summary=advisor_summary,
             model_provider=model_provider,
             model_version=model_version,
             prompt_version="prompt:2026.06:v1",
@@ -372,11 +379,12 @@ class DiagnosisService:
             cost_total=cost_log.cost_estimate,
         )
 
-    def _generate_llm_sections(self, text: str, fault_type: FaultType, urgency_level: str, knowledge: dict, risk) -> dict | None:
+    def _generate_llm_sections(self, text: str, fault_type: FaultType, urgency_level: str, knowledge: dict, risk, user_profile: str = "") -> dict | None:
         if self.llm_adapter is None:
             return None
+        system_content = DIAGNOSIS_SYSTEM_PROMPT + (f"\n{user_profile}" if user_profile else "")
         messages = [
-            {"role": "system", "content": DIAGNOSIS_SYSTEM_PROMPT},
+            {"role": "system", "content": system_content},
             {
                 "role": "user",
                 "content": (
@@ -390,7 +398,9 @@ class DiagnosisService:
                     "（设备类型 / 使用年限 / 具体现象 / 用户已排除项），给出有区分度的判断，"
                     "不要给放之四海皆准的泛化模板。如果对话信息不足以区分，uncertainty_note 要如实说明。\n"
                     "字段：possible_causes, recommended_actions, forbidden_actions, self_check_steps, "
-                    "need_professional, need_professional_reason, uncertainty_note"
+                    "need_professional, need_professional_reason, uncertainty_note, advisor_summary\n"
+                    "advisor_summary 是给用户看的顾问式总结（2-3句，像维修师傅聊完的口吻，可带一点幽默，"
+                    "要结合用户画像/城市能级/价格给针对性建议，不要泛化）。"
                 ),
             },
         ]
